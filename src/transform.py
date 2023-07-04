@@ -1,5 +1,6 @@
 import nbformat
-from code_utils import code_to_cell
+# from src.code_utils import code_to_cell
+from code_utils_one_cell import code_to_cell
 from markdown_utils import markdown_to_cell
 from sections import remove_section_list
 
@@ -15,7 +16,7 @@ def transform_nb(path_original_nb, path_new_nb, remove_sections = []):
         new_cells = []
         if cell.cell_type == "code":
             code = cell.source
-            new_cells, ipywidget_imported = code_to_cell(code, ipywidget_imported)
+            new_cells, ipywidget_imported = code_to_cell(code, ipywidget_imported, function_name='function')
         elif cell.cell_type == "markdown":
             text = cell.source
             new_text, section_localizer = markdown_to_cell(text, section_localizer, cell_idx)
