@@ -33,9 +33,32 @@ def transform_nb(path_original_nb, path_new_nb, remove_sections = []):
     nbformat.write(new_nb, path_new_nb)
 
 def main():
-    path_original_nb = "../notebooks/U-Net_2D_Multilabel_ZeroCostDL4Mic.ipynb"
-    path_new_nb = "../notebooks/new_U-Net_2D_Multilabel_ZeroCostDL4Mic.ipynb"
-    transform_nb(path_original_nb, path_new_nb, remove_sections = ["1.1.", "1.2.", "2."])
+    import os
+    
+    notebook_list = sorted(os.listdir("../notebooks"))
+    notebook_list.remove('.ipynb_checkpoints')
+    remove_section_dict = {'CARE_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'CARE_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
+                            'CycleGAN_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
+                            'Deep-STORM_2D_ZeroCostDL4Mic.ipynb': [ "2.", "6.4."],
+                            'Noise2Void_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'Noise2Void_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
+                            'StarDist_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'StarDist_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
+                            'U-Net_2D_Multilabel_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
+                            'U-Net_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'U-Net_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
+                            'YOLOv2_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'fnet_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'fnet_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
+                            'pix2pix_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
+                           }
+
+    for notebook_name in notebook_list:
+        print(notebook_name)
+        path_original_nb = os.path.join("../notebooks/", notebook_name)
+        path_new_nb = os.path.join("../colabless_notebooks/", notebook_name)
+        transform_nb(path_original_nb, path_new_nb, remove_sections = remove_section_dict[notebook_name])
 
 if __name__ == "__main__":
     main()

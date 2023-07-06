@@ -44,6 +44,13 @@ def update_cell_sections(cells, section_localizer, section_to_rmv, next_section)
 def remove_section(cells, section_localizer, section_to_rmv):
     cell_idx_to_rmv = section_localizer[section_to_rmv]
     next_section = calculate_next_section(section_to_rmv)
+
+    while next_section not in section_localizer:
+        new_next_section = '.'.join(next_section.split('.')[:-2]) + '.'
+        if new_next_section == '.':
+            next_section = section_to_rmv
+        next_section = calculate_next_section(new_next_section)
+        
     next_section_cell_idx = section_localizer[next_section]
 
     reduced_cells = cells[:cell_idx_to_rmv] + cells[next_section_cell_idx:]
@@ -57,5 +64,5 @@ def remove_section_list(cells, section_localizer, section_list):
     sorted_sections = sorted(section_list, key=lambda x: [int(num) for num in x.split('.')[:-1]], reverse=True)
     for section in sorted_sections:
         cells, section_localizer = remove_section(cells.copy(), section_localizer.copy(), section)
-    
+
     return cells, section_localizer 
