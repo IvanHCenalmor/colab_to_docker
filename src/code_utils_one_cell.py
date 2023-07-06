@@ -5,36 +5,54 @@ installation_regex = r'(pip|conda) install'
 float_regex = r"[-+]?\d*\.\d+|[-+]?\d+"
 ipywidget_style = "{'description_width': 'initial'}"
 param_regex = r"(\w+)\s*=\s*([\S\s]+?)\s*#@param\s*(.+)"
-def param_to_widget(code: str) -> str:
+
+assignation_regex =  r'^\s*([a-zA-Z_]\w*(?:\s*,\s*[a-zA-Z_]\w*)*)\s*=\s*.*$'
+function_regex = r"^\s*def\s+([a-zA-Z_]\w*)\s*\(.+\)\s*:\s*$"
+
+def param_to_widget(code):
     """
-    This function converts colab's form params into interactive widgets. It takes a string as input and returns a string.
-    @param code: a string containing the function parameters.
-    @return: a string that contains the generated widgets for each parameter that can be used to make the function interactive.
+    Extracts components from a line with @param and creates ipywidgets based on the extracted information.
+    Parameters:
+        code (str): The line of code containing the @param component.
+
+    Returns:
+        str: The generated widget code.
+        str: The name of the variable associated with the widget.
     """
-    
+
+    # Extract the components from a line with @param component
     match_param = re.search(param_regex, code)
     var_name = match_param.group(1)
     default_value = match_param.group(2)
     post_param = match_param.group(3)
     
-    match_type = re.findall(r"{type:\"(\w+)\".*}", post_param)
+    # Extract the type of the @param
+    match_type = re.findall(r"{type:\s*\"(\w+)\".*}", post_param)
     param_type = match_type[0] if match_type else None
 
+    # Extract and check if instead of a type, a list is defined 
     match_list = re.findall(r"(\[.*?\])", post_param)
     if match_list:
         possible_values = match_list[0]
 
-    if match_list:
         if re.findall(r"{allow-input:\s*true}", post_param):
+            # In case the variable allow-input is found, a Combobox ipywidget is added (allowing new inputs)
             result = f'widget_{var_name} = widgets.Combobox(options={possible_values}, placeholder={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         else:
+            # If not, a Dropdown ipywidget is added
+
+            # In case the default value is not in the given list of possible values the first one will be selected
+            # For that we need to extract the list of possible values and then check if it is in there
             if ',' in possible_values:
                 list_possible_values = [item.strip() for item in possible_values.strip('[]').split(',')]
             else:
                 list_possible_values =  [item.strip() for item in possible_values.strip('[]')]
             default_value = default_value if default_value in list_possible_values else list_possible_values[0]
+
             result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+            
     elif param_type is not None:
+        # If it is not a list a list of values, it would be one of the following types (adding ipywidgets based on the type)
         if param_type == "slider":
             min, max, step = re.findall(f"\s*min:({float_regex}),\s*max:({float_regex}),\s*step:({float_regex})", post_param)[0]
             try:
@@ -67,12 +85,29 @@ def param_to_widget(code: str) -> str:
     return result, var_name
 
 def extract_values_from_variables(variable_list):
-    resutl = '# Run this cell to extract the selected values in previuous cell\n'
+    """
+    Extracts the selected values from the given list of variables.
+    Parameters:
+        variable_list (list): A list of variables.
+    Returns:
+        str: A string containing the extracted values.
+    """
+    
+    result = '# Run this cell to extract the selected values in previuous cell\n'
     for var in variable_list:
-        resutl += f"{var} = widget_{var}.value\n"
-    return resutl
+        result += f"{var} = widget_{var}.value\n"
+    return result
 
-def clear_excesive_empty_lines(data: str) -> str:
+def clear_excesive_empty_lines(data):
+    """
+    Remove excessive empty lines from the given string.
+    Parameters:
+    - data (str): The input string.
+
+    Returns:
+    - str: The string with excessive empty lines removed.
+    """
+
     # Split the string into a list of lines
     lines = data.splitlines()
 
@@ -88,10 +123,26 @@ def clear_excesive_empty_lines(data: str) -> str:
     return new_string
 
 def is_only_comments(code):
+    """
+    Check if the given code consists only of comments.
+    Parameters:
+    - code (str): The code to be checked.
+    Returns:
+    - is_only_comments (bool): True if the code consists only of comments, False otherwise.
+    """
+    
     is_only_comments = all(line.strip().startswith('#') or not line.strip() for line in code.split('\n'))
     return is_only_comments
 
 def count_spaces(sentence):
+    """
+    Count the number of leading spaces in a given sentence.
+    Parameters:
+        sentence (str): The sentence to count the leading spaces in.
+    Returns:
+        int: The number of leading spaces in the sentence.
+    """
+    
     match = re.match(r'^\s*', sentence)
     if match:
         return len(match.group(0))
@@ -99,67 +150,104 @@ def count_spaces(sentence):
         return 0
 
 def code_to_cell(code, ipywidget_imported, function_name):
+    """
+    Generates a list of code cells for a Jupyter notebook based on the given code.
+    Parameters:
+    - code (str): The code to be converted into code cells.
+    - ipywidget_imported (bool): Indicates whether the `ipywidgets` library has already been imported.
+    - function_name (str): The name of the function to be created.
+    Returns:
+    - new_cells (list): A list of code cells generated from the given code.
+    - ipywidget_imported (bool): An updated value indicating whether the `ipywidgets` library has been imported.
+    """
+ 
 
-    lines = code.split('\n')    
-
+    # Future lines of code that are based on widgets or not
     widget_code = ''
-    non_widget_code = '# Run this cell to execute the code\n'
+    non_widget_code = ''
+    
+    # List of variables and functions that need to be defined as global
     widget_var_list = []
+    var_list = []
+    func_list = []
 
+    # We are going line by line analyzing them
+    lines = code.split('\n')  
     for line in lines:
-        # Check if the line is an installation line
         if re.search(installation_regex, line):
+            # The installation lines are removed
             pass
         elif re.search(param_regex, line):
+            # The lines with #@param are replaced with ipywidgets based on the parameters
             new_line, var_name = param_to_widget(line)
             if var_name != "" and var_name not in widget_var_list:
                 widget_var_list.append(var_name)
             widget_code += new_line + '\n'
             non_widget_code += ' '*count_spaces(line) + f"{var_name} = widget_{var_name}.value\n"
         else:
+            # In the other the variable and function names are extracted
+            assign_match = re.match(assignation_regex, line)
+            if assign_match:
+                possible_variables = assign_match.group(1).split(',')
+                for var in possible_variables:
+                    var_list.append(var)
+            
+            function_match = re.match(function_regex, line)
+            if function_match:
+                func_list.append(function_match.group(1))
+
+            # And the line is added as it is
             non_widget_code += line + '\n'
 
     new_cells = []
 
     if widget_var_list:
-        # In case a param was found, everythign will be encapsulated in a function
+        # In case a param was found, everything will be encapsulated in a function
+
+        # For that all the code needs to be tabbed inside the function
         tabbed_non_widget_code = ""
         for line in non_widget_code.split('\n'):
-            tabbed_non_widget_code += ' '*2 + line + '\n'
+            tabbed_non_widget_code += " "*4 + line + '\n'
 
-        global_variables = "".join([' '*2 + f"global {var}\n" for var in widget_var_list])
+        # Global variables that will be inside the function in order to be accesible in the notebook
+        global_widgets_var = "".join([" "*4 + f"global {var}\n" for var in widget_var_list])
+        global_var = "".join([" "*4 + f"global {var}\n" for var in var_list])
+        global_func = "".join([" "*4 + f"global {var}\n" for var in func_list])
 
-        code_cell = "# Run this cell to visualize the parameters\n"
+        global_variables = global_widgets_var + '\n' + global_var + '\n' + global_func
+
+        # All the new lines of code are ensambled
+        code_cell = "# Run this cell to visualize the parameters and click the button to execute the code\n"
         if not ipywidget_imported:
-            code_cell += ("import ipywidgets as widgets\n"
-                           "from IPython.display import display, clear_output\n")
-                           
+            # In case the ipywidgets library have not been imported yet
+            code_cell += ("import ipywidgets as widgets\n" 
+                          "from IPython.display import display, clear_output\n")       
             ipywidget_imported = True
 
-        code_cell += ("clear_output()\n\n"
-                    ) + widget_code + (
-                    f"\ndef {function_name}(_):\n"
-                    ) + global_variables + '\n' + tabbed_non_widget_code + (
-                    "button = widgets.Button(description='Load and run')\n"
-                    "display(button)\n"
-                    f"button.on_click({function_name})\n"
-                    "function_name('_')\n"
+        code_cell += ("clear_output()\n\n" # In orther to renew the ipywidgets
+                    ) + widget_code + ( # Add the code with the widgets at the begining of the cell
+                    f"\ndef {function_name}(output_widget):\n" # The function that will be called whwn clicking the button
+                    "  output_widget.clear_output()\n" # Clear the output that was displayed when calling the function
+                    "  with output_widget:\n" # In order to display the output
+                    ) + global_variables + '\n' + tabbed_non_widget_code + ( # Add the global variables and the non widget code
+                    "button = widgets.Button(description='Load and run')\n" # Add the button that calls the function
+                    "output = widgets.Output()\n"
+                    "display(button, output)\n\n"
+                    f"def aux_{function_name}(_):\n" 
+                    f"  return {function_name}(output)\n\n"
+                    f"button.on_click(aux_{function_name})\n"
                     )
-
-        aux_cell = nbformat.v4.new_code_cell(code_cell)
-        # Hides the content in the code cells
-        aux_cell.metadata["cellView"] = "form"
-        aux_cell.metadata["collapsed"] = True
-        aux_cell.metadata["jupyter"] = {"source_hidden": True}
-        new_cells.append(aux_cell)
     else:
-        #Create the code cell
-        aux_cell = nbformat.v4.new_code_cell(clear_excesive_empty_lines(non_widget_code))
-        # Hides the content in the code cells
-        aux_cell.metadata["cellView"] = "form"
-        aux_cell.metadata["collapsed"] = True
-        aux_cell.metadata["jupyter"] = {"source_hidden": True}
-                
-        new_cells.append(aux_cell)
+        # Otherwise, just add the code
+        code_cell = "# Run this cell to execute the code\n" +  non_widget_code
+
+    #Create the code cell
+    aux_cell = nbformat.v4.new_code_cell(clear_excesive_empty_lines(code_cell))
+    # Hides the content in the code cells
+    aux_cell.metadata["cellView"] = "form"
+    aux_cell.metadata["collapsed"] = True
+    aux_cell.metadata["jupyter"] = {"source_hidden": True}
+            
+    new_cells.append(aux_cell)
     
     return new_cells, ipywidget_imported
