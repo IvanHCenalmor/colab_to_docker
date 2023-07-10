@@ -38,13 +38,12 @@ def main():
  
     parser = argparse.ArgumentParser(description="Convert colab notebook to docker notebook",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-p", "--path", action="store_true", help="path of the notebook")
-    parser.add_argument("-n", "--name", action="store_true", help="name of the notebook")
-    args = parser.parse_args()
-    config = vars(args)
-
-    notebook_list = sorted(os.listdir("../notebooks"))
-    notebook_list.remove('.ipynb_checkpoints')
+    parser.add_argument("-p", "--path", help="path of the notebook")
+    parser.add_argument("-n", "--name", help="name of the notebook")
+    args = vars(parser.parse_args())
+    
+    # notebook_list = sorted(os.listdir("../notebooks"))
+    # notebook_list.remove('.ipynb_checkpoints')
     remove_section_dict = {'CARE_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
                             'CARE_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
                             'CycleGAN_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
@@ -62,9 +61,9 @@ def main():
                             'pix2pix_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
                            }
     
-    path_original_nb = os.path.join(config["path"], config["name"])
-    path_new_nb = os.path.join(config["path"], "colabless_" + config["name"])
-    transform_nb(path_original_nb, path_new_nb, remove_sections = remove_section_dict[config["name"]])
+    path_original_nb = os.path.join(args["path"], args["name"])
+    path_new_nb = os.path.join(args["path"], "colabless_" + args["name"])
+    transform_nb(path_original_nb, path_new_nb, remove_sections = remove_section_dict[args["name"]])
 
     """
     for notebook_name in notebook_list:
