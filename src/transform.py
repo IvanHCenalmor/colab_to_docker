@@ -26,7 +26,6 @@ def transform_nb(path_original_nb, path_new_nb, remove_sections = []):
             new_nb.cells.extend(new_cells)
             cell_idx += len(new_cells)
 
-    # TODO remove sections and receives a list and ensures that it does it in inverse order so that there is no problem when updating the section numbers
     new_nb.cells, section_localizer = remove_section_list(cells=new_nb.cells, 
                                                           section_localizer=section_localizer,
                                                           section_list = remove_sections)
@@ -40,47 +39,12 @@ def main():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-p", "--path", help="path of the notebook")
     parser.add_argument("-n", "--name", help="name of the notebook")
+    parser.add_argument("-s", "--sections", help="list with the sections to temove", nargs='+', default = [])
     args = vars(parser.parse_args())
     
-    # notebook_list = sorted(os.listdir("../notebooks"))
-    # notebook_list.remove('.ipynb_checkpoints')
-    # remove_section_dict = {'CARE_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'CARE_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
-    #                         'CycleGAN_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
-    #                         'Deep-STORM_2D_ZeroCostDL4Mic.ipynb': [ "2.", "6.4."],
-    #                         'Noise2Void_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'Noise2Void_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
-    #                         'StarDist_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'StarDist_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
-    #                         'U-Net_2D_Multilabel_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
-    #                         'U-Net_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'U-Net_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.2."],
-    #                         'YOLOv2_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'fnet_2D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'fnet_3D_ZeroCostDL4Mic.ipynb': ["1.1.", "1.2.", "2.", "6.3."],
-    #                         'pix2pix_ZeroCostDL4Mic.ipynb': ["2.", "6.3."],
-    #                        }
-
-    remove_section_dict = {'CARE_2D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'CARE_3D': ["1.1.", "1.2.", "2.", "6.2."],
-                        'CycleGAN': ["2.", "6.3."],
-                        'Deep-STORM_2D': [ "2.", "6.4."],
-                        'Noise2Void_2D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'Noise2Void_3D': ["1.1.", "1.2.", "2.", "6.2."],
-                        'StarDist_2D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'StarDist_3D': ["1.1.", "1.2.", "2.", "6.2."],
-                        'U-Net_2D_Multilabel': ["1.1.", "1.2.", "2.", "6.2."],
-                        'U-Net_2D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'U-Net_3D': ["1.1.", "1.2.", "2.", "6.2."],
-                        'YOLOv2': ["1.1.", "1.2.", "2.", "6.3."],
-                        'fnet_2D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'fnet_3D': ["1.1.", "1.2.", "2.", "6.3."],
-                        'pix2pix': ["2.", "6.3."],
-                        }
-
     path_original_nb = os.path.join(args["path"], args["name"])
     path_new_nb = os.path.join(args["path"], "colabless_" + args["name"])
-    transform_nb(path_original_nb, path_new_nb, remove_sections = remove_section_dict[args["name"]])
+    transform_nb(path_original_nb, path_new_nb, remove_sections = args["sections"])
 
     """
     for notebook_name in notebook_list:
