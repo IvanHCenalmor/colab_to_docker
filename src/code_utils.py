@@ -1,30 +1,41 @@
 import re
 import nbformat
 
+# Usefull regular expressions 
 installation_regex = r'(pip|conda) install'
 float_regex = r"[-+]?\d*\.\d+|[-+]?\d+"
 ipywidget_style = "{'description_width': 'initial'}"
 param_regex = r"(\w+)\s*=\s*([\S\s]+?)\s*#@param\s*(.+)"
-def param_to_widget(code: str) -> str:
+
+def param_to_widget(code):
     """
-    This function converts colab's form params into interactive widgets. It takes a string as input and returns a string.
-    @param code: a string containing the function parameters.
-    @return: a string that contains the generated widgets for each parameter that can be used to make the function interactive.
+    Generates an ipywidget based on the given magic command param code (from Google Colab).
+
+    Parameters:
+        code (str): The param code that defines the widget.
+
+    Returns:
+        str, str: A tuple containing the generated widget code and the variable name of the widget.
     """
-    
+    # First find if it matches the param regular expression
     match_param = re.search(param_regex, code)
+    # If so, extract the variable name, default value and text after the @param
     var_name = match_param.group(1)
     default_value = match_param.group(2)
     post_param = match_param.group(3)
     
+    # Extract the type of the param from the post_param
     match_type = re.findall(r"{type:\"(\w+)\".*}", post_param)
     param_type = match_type[0] if match_type else None
 
+    # Extract and check if instead of a type, a list is defined, if so,
+    # the param defines a list of possible values and they need to be extracted
     match_list = re.findall(r"(\[.*?\])", post_param)
     if match_list:
         possible_values = match_list[0]
 
     if match_list:
+        # If it is not a list a list of values, it would be a Combobox or a Dropdown ipywidget
         if re.findall(r"{allow-input:\s*true}", post_param):
             result = f'aux_{var_name} = widgets.Combobox(options={possible_values}, placeholder={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         else:
@@ -35,6 +46,8 @@ def param_to_widget(code: str) -> str:
             default_value = default_value if default_value in list_possible_values else list_possible_values[0]
             result = f'aux_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
     elif param_type is not None:
+        # If it is not a list a list of values and is not None, 
+        # it would be one of the following types (adding ipywidgets based on the type)
         if param_type == "slider":
             min, max, step = re.findall(f"\s*min:({float_regex}),\s*max:({float_regex}),\s*step:({float_regex})", post_param)[0]
             try:
@@ -67,10 +80,19 @@ def param_to_widget(code: str) -> str:
     return result, var_name
 
 def extract_values_from_variables(variable_list):
-    resutl = '# Run this cell to extract the selected values in previuous cell\n'
+    """
+    Extracts the selected values from the given list of variables.
+
+    Args:
+        variable_list (list): A list of variables.
+
+    Returns:
+        str: A string containing the extracted values from the variables.
+    """
+    result = '# Run this cell to extract the selected values in previuous cell\n'
     for var in variable_list:
-        resutl += f"{var} = aux_{var}.value\n"
-    return resutl
+        result += f"{var} = aux_{var}.value\n"
+    return result
 
 def clear_excesive_empty_lines(data: str) -> str:
     # Split the string into a list of lines
@@ -88,10 +110,29 @@ def clear_excesive_empty_lines(data: str) -> str:
     return new_string
 
 def is_only_comments(code):
+    """
+    Check if the given code consists only of comments.
+
+    Parameters:
+        code (str): The code to be checked.
+
+    Returns:
+        bool: True if the code consists only of comments, False otherwise.
+    """
     is_only_comments = all(line.strip().startswith('#') or not line.strip() for line in code.split('\n'))
     return is_only_comments
 
 def code_to_cell(code, ipywidget_imported):
+    """
+    Generates the code cells for a Jupyter Notebook from the given code and ipywidget_imported flag.
+    
+    Parameters:
+        code (str): The code to be transformed into code cells.
+        ipywidget_imported (bool): A flag indicating whether the ipywidgets library is already imported.
+    
+    Returns:
+        tuple: A tuple containing the generated code cells and the updated value for the ipywidget_imported flag.
+    """
 
     lines = code.split('\n')    
 
@@ -100,20 +141,24 @@ def code_to_cell(code, ipywidget_imported):
     widget_var_list = []
 
     for line in lines:
-        # Check if the line is an installation line
         if re.search(installation_regex, line):
+            # If the line is an installation line, it will not be included
             pass
         elif re.search(param_regex, line):
+            # If the line is a param line, it will be transformed into an 
+            # ipywidget and it will be included 
             new_line, var_name = param_to_widget(line)
             if var_name != "" and var_name not in widget_var_list:
                 widget_var_list.append(var_name)
             widget_code += new_line + '\n'
         else:
+            # Other, it is simply included
             non_widget_code += line + '\n'
 
     new_cells = []
 
     if widget_var_list:
+        # If there are params in the code, the ipywidgets need to be included
         if not ipywidget_imported:
             widget_code = ("# Run this cell to visualize the parameters\n"
                            "import ipywidgets as widgets\n"
@@ -140,7 +185,8 @@ def code_to_cell(code, ipywidget_imported):
         new_cells.append(aux_cell)
 
     if not is_only_comments(non_widget_code):
-        #Create the code cell
+        # If is only comments, the code cell will not be included
+        
         aux_cell = nbformat.v4.new_code_cell(clear_excesive_empty_lines(non_widget_code))
         # Hides the content in the code cells
         aux_cell.metadata["cellView"] = "form"
@@ -148,5 +194,5 @@ def code_to_cell(code, ipywidget_imported):
         aux_cell.metadata["jupyter"] = {"source_hidden": True}
                 
         new_cells.append(aux_cell)
-    
+
     return new_cells, ipywidget_imported

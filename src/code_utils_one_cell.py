@@ -1,6 +1,7 @@
 import re
 import nbformat
 
+# Usefull regular expressions 
 installation_regex = r'(pip|conda) install'
 float_regex = r"[-+]?\d*\.\d+|[-+]?\d+"
 ipywidget_style = "{'description_width': 'initial'}"
