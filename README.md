@@ -7,6 +7,14 @@ Its based in two python libraries: **re** and **nbformat**. As **re** already co
 pip install nbformat
 '''
 
+The versions of the libraries that have been used is:
+ - nbformat==5.9.1
+ - re==2.2.1
+
+The Python version has been **3.10.11**.
+
+* Other versions may also work, but these have been the ones used during the developement of this library.
+
 # How to use?
 As the pip installation is not available yet, you need to clone the repository or download the code to be able to run it:
 
