@@ -15,7 +15,7 @@ The versions of the libraries that have been used is:
 
 The Python version has been **3.10.11**.
 
-*Other versions may also work, but these have been the ones used during the developement of this library.
+> Other versions may also work, but these have been the ones used during the developement of this library.
 
 # How to use?
 As the pip installation is not available yet, you need to clone the repository or download the code to be able to run it:
