@@ -228,7 +228,7 @@ def code_to_cell(code, ipywidget_imported, function_name):
                     "  output_widget.clear_output()\n" # Clear the output that was displayed when calling the function
                     "  with output_widget:\n" # In order to display the output
                     ) + global_variables + '\n' + tabbed_non_widget_code + ( # Add the global variables and the non widget code
-                    "  plt.show()\n" # Add plt.show() in case there is any plot in tab_non_widget_code, so that it can be displayed
+                    "    plt.show()\n" # Add plt.show() in case there is any plot in tab_non_widget_code, so that it can be displayed
                     "button = widgets.Button(description='Load and run')\n" # Add the button that calls the function
                     "output = widgets.Output()\n"
                     "display(button, output)\n\n"
