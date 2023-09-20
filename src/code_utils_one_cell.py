@@ -12,77 +12,74 @@ function_regex = r"^\s*def\s+([a-zA-Z_]\w*)\s*\(.+\)\s*:\s*$"
 
 def param_to_widget(code):
     """
-    Extracts components from a line with @param and creates ipywidgets based on the extracted information.
+    Generates an ipywidget based on the given magic command param code (from Google Colab).
+
     Parameters:
-        code (str): The line of code containing the @param component.
+        code (str): The param code that defines the widget.
 
     Returns:
-        str: The generated widget code.
-        str: The name of the variable associated with the widget.
+        str, str: A tuple containing the generated widget code and the variable name of the widget.
     """
-
-    # Extract the components from a line with @param component
+    # First find if it matches the param regular expression
     match_param = re.search(param_regex, code)
+    # If so, extract the variable name, default value and text after the @param
     var_name = match_param.group(1)
     default_value = match_param.group(2)
     post_param = match_param.group(3)
     
-    # Extract the type of the @param
-    match_type = re.findall(r"{type:\s*\"(\w+)\".*}", post_param)
+    # Extract the type of the param from the post_param
+    match_type = re.findall(r"{type:\"(\w+)\".*}", post_param)
     param_type = match_type[0] if match_type else None
 
-    # Extract and check if instead of a type, a list is defined 
+    # Extract and check if instead of a type, a list is defined, if so,
+    # the param defines a list of possible values and they need to be extracted
     match_list = re.findall(r"(\[.*?\])", post_param)
     if match_list:
         possible_values = match_list[0]
 
+    if match_list:
+        # If it is not a list a list of values, it would be a Combobox or a Dropdown ipywidget
         if re.findall(r"{allow-input:\s*true}", post_param):
-            # In case the variable allow-input is found, a Combobox ipywidget is added (allowing new inputs)
-            result = f'widget_{var_name} = widgets.Combobox(options={possible_values}, placeholder={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+            result = f'aux_{var_name} = widgets.Combobox(options={possible_values}, placeholder={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         else:
-            # If not, a Dropdown ipywidget is added
-
-            # In case the default value is not in the given list of possible values the first one will be selected
-            # For that we need to extract the list of possible values and then check if it is in there
             if ',' in possible_values:
                 list_possible_values = [item.strip() for item in possible_values.strip('[]').split(',')]
             else:
-                list_possible_values =  [item.strip() for item in possible_values.strip('[]')]
+                list_possible_values =  [possible_values.strip('[]').strip()]
             default_value = default_value if default_value in list_possible_values else list_possible_values[0]
-
-            result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
-            
+            result = f'aux_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
     elif param_type is not None:
-        # If it is not a list a list of values, it would be one of the following types (adding ipywidgets based on the type)
+        # If it is not a list a list of values and is not None, 
+        # it would be one of the following types (adding ipywidgets based on the type)
         if param_type == "slider":
             min, max, step = re.findall(f"\s*min:({float_regex}),\s*max:({float_regex}),\s*step:({float_regex})", post_param)[0]
             try:
                 min, max, step = int(min), int(max), int(step)
-                result = f'widget_{var_name} = widgets.IntSlider(value={default_value}, min={min}, max={max}, step={step}, style={ipywidget_style}, description="{var_name}:")\n'
+                result = f'aux_{var_name} = widgets.IntSlider(value={default_value}, min={min}, max={max}, step={step}, style={ipywidget_style}, description="{var_name}:")\n'
             except:
                 min, max, step = float(min), float(max), float(step)
-                result = f'widget_{var_name} = widgets.FloatSlider(value={default_value}, min={min}, max={max}, step={step}, style={ipywidget_style}, description="{var_name}:")\n'
+                result = f'aux_{var_name} = widgets.FloatSlider(value={default_value}, min={min}, max={max}, step={step}, style={ipywidget_style}, description="{var_name}:")\n'
         if param_type == "integer":
-            result = f'widget_{var_name} = widgets.IntText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+            result = f'aux_{var_name} = widgets.IntText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         elif param_type == "number":
             if '.' in default_value:
-                result = f'widget_{var_name} = widgets.FloatText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+                result = f'aux_{var_name} = widgets.FloatText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
             else:
-                result = f'widget_{var_name} = widgets.IntText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+                result = f'aux_{var_name} = widgets.IntText(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         elif param_type == "boolean":
-            result = f'widget_{var_name} = widgets.Checkbox(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+            result = f'aux_{var_name} = widgets.Checkbox(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         elif param_type == "string" or param_type == "raw":
-            result = f'widget_{var_name} = widgets.Text(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+            result = f'aux_{var_name} = widgets.Text(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
         elif param_type == "date":
             result = ('from datetime import datetime\n'
-                      f'widget_{var_name} = widgets.DatePicker(value=datetime.strptime({default_value}, "%Y-%m-%d"),style={ipywidget_style}, description="{var_name}:")\n'
+                      f'aux_{var_name} = widgets.DatePicker(value=datetime.strptime({default_value}, "%Y-%m-%d"),style={ipywidget_style}, description="{var_name}:")\n'
                       )
     else:
         # Even if it has #@param, it does not follow colab param format
         return code, ''
             
     # In case it has colab param format 
-    result += f'display(widget_{var_name})'
+    result += f'display(aux_{var_name})'
     return result, var_name
 
 def extract_values_from_variables(variable_list):
