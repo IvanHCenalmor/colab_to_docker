@@ -42,7 +42,7 @@ def param_to_widget(code):
             if ',' in possible_values:
                 list_possible_values = [item.strip() for item in possible_values.strip('[]').split(',')]
             else:
-                list_possible_values =  [item.strip() for item in possible_values.strip('[]')]
+                list_possible_values =  [possible_values.strip('[]').strip()]
             default_value = default_value if default_value in list_possible_values else list_possible_values[0]
             result = f'aux_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
     elif param_type is not None:
@@ -196,3 +196,5 @@ def code_to_cell(code, ipywidget_imported):
         new_cells.append(aux_cell)
 
     return new_cells, ipywidget_imported
+
+print(param_to_widget("pretrained_model_choice = 'Model_from_file' #@param ['Model_from_file']"))
