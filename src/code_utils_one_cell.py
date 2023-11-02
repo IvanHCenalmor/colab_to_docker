@@ -33,7 +33,7 @@ def param_to_widget(code):
     if re.match(comment_after_param_regex, post_param):
         # In case is the strange scenario with comment after @param 
         # And after it will be treated as raw parameter
-        result = f'widget_{var_name} = widgets.Text(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+        result = f'widget_{var_name} = widgets.Text(value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
     else:
         # Extract the type of the @param
         match_type = re.findall(r"{type:\s*\"(\w+)\".*}", post_param)
@@ -58,8 +58,12 @@ def param_to_widget(code):
                     list_possible_values =  [possible_values.strip('[]').strip()]
                 default_value = default_value if default_value in list_possible_values else list_possible_values[0]
 
-                result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
-                
+                if param_type is not None and param_type == "raw":
+                    possible_values = [f"{int(item)}" for item in list_possible_values]
+                    result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
+                else:
+                    result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+
         elif param_type is not None:
             # If it is not a list a list of values, it would be one of the following types (adding ipywidgets based on the type)
             if param_type == "slider":
