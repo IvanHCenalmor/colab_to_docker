@@ -59,7 +59,7 @@ def param_to_widget(code):
                 default_value = default_value if default_value in list_possible_values else list_possible_values[0]
 
                 if param_type is not None and param_type == "raw":
-                    result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
+                    result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value="{default_value.strip('"')}", style={ipywidget_style}, description="{var_name}:")\n'
                 else:
                     result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
 
