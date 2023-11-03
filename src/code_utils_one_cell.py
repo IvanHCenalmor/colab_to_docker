@@ -33,7 +33,11 @@ def param_to_widget(code):
     if re.match(comment_after_param_regex, post_param):
         # In case is the strange scenario with comment after @param 
         # And after it will be treated as raw parameter
-        result = f'widget_{var_name} = widgets.Text(value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
+
+        if '\'' in default_value or '\"' in default_value: 
+            result = f'widget_{var_name} = widgets.Text(value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+        else:
+            result = f'widget_{var_name} = widgets.Text(value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
     else:
         # Extract the type of the @param
         match_type = re.findall(r"{type:\s*\"(\w+)\".*}", post_param)
@@ -59,7 +63,13 @@ def param_to_widget(code):
                 default_value = default_value if default_value in list_possible_values else list_possible_values[0]
 
                 if param_type is not None and param_type == "raw":
-                    result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value="{default_value.strip('"')}", style={ipywidget_style}, description="{var_name}:")\n'
+                    # In case its a raw parameter, a Dropdown ipywidget is added that will be then evaluated with eval()
+                    possible_values = [str(i) for i in list_possible_values]
+                    
+                    if '\'' in default_value or '\"' in default_value: 
+                        result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
+                    else:
+                        result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value="{default_value}", style={ipywidget_style}, description="{var_name}:")\n'
                 else:
                     result = f'widget_{var_name} = widgets.Dropdown(options={possible_values}, value={default_value}, style={ipywidget_style}, description="{var_name}:")\n'
 
